@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
 
   spec.summary       = %q{calendar_days.gem is to know weekdays, holidays and weekends.}
   spec.description   = %q{calendar_days uses webcal (ics file). the installation of icalendar.gem is needed.}
-  spec.homepage      = "TODO: Put your gem's website or public repo URL here."
+  spec.homepage      = "https://github.com/mephistobooks/calendar_days"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
