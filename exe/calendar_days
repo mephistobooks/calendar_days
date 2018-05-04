@@ -1,3 +1,13 @@
 #!/usr/bin/env ruby
 
+$LOAD_PATH.unshift File.expand_path("../../lib", __FILE__)
 require "calendar_days"
+
+year = ARGV[0] || DateTime.now.year
+year = year.to_i
+month = ARGV[1]
+month = month.to_i unless month.nil?
+cald = CalendarDays.new(year, month)
+
+puts cald.holidays.map{|ar| [ar.first.to_s.gsub(/T.+$/, ''), ar.last].join(' ') }
+
