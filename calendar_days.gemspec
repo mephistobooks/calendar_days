@@ -9,8 +9,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["YAMAMOTO, Masayuki"]
   spec.email         = ["martin.route66.blues+github@gmail.com"]
 
-  spec.summary       = %q{TODO: Write a short summary, because RubyGems requires one.}
-  spec.description   = %q{TODO: Write a longer description or delete this line.}
+  spec.summary       = %q{calendar_days.gem is to know weekdays, holidays and weekends.}
+  spec.description   = %q{calendar_days uses webcal (ics file). the installation of icalendar.gem is needed.}
   spec.homepage      = "TODO: Put your gem's website or public repo URL here."
   spec.license       = "MIT"
 
