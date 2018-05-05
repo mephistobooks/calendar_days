@@ -11,7 +11,8 @@ require "calendar_days/net_cache"
 #
 #
 #
-class CalendarDays < ::DateTime
+# class CalendarDays < ::DateTime
+class CalendarDays
 
   include NetCache
 
@@ -22,45 +23,76 @@ end
 #
 #
 class CalendarDays
-  #
-  # https://stackoverflow.com/questions/9049123/why-does-date-new-not-call-initialize
-  #
-  def self.new( in_year = DateTime.now.year, since_month = nil )
-    since_month_tmp = since_month || 1
-    tmp = super(in_year, since_month_tmp, 1)
-    tmp.instance_eval{ initialize(in_year, since_month) }
+
+  def to_s_date( date )
+    date.to_s.gsub(/T.+$/, '')
   end
-  alias :in_year     :year
-  alias :since_month :month
-  alias :since_day   :day
-  def since; DateTime.new(in_year, since_month, since_day); end
 
-  def initialize( in_year, until_month = nil )
+  def date_to_datetime( date )
+    date = DateTime.parse(date) if date.is_a? ::String
+    date
+  end
 
-    until_month ||= 12
-    @until_month = until_month
-    @until_day   = DateTime.new(in_year, until_month, -1).day
+  def valid_date?(date_since = self.since, date_until = self.until)
+    if ics_start <= date_since and date_until <= ics_end
+      true
+    else
+      false
+    end
+  end
 
-    prepare_repo
+  #
+  # ==== Args
+  # _y :: year[opt.]
+  # _m :: month[opt.]
+  #
+  def initialize( _y = nil, _m = nil )
 
     #
+    self.prepare_repo
     ics_file    = File.open(repo_file_fullpath)
     @ics_events = Icalendar::Event.parse(ics_file).sort_by{|ev| ev.dtstart.to_datetime}
     ics_file.close
 
+    @since_year  = _y || self.ics_start.year
+    @since_month = _m ||  1
+    @since_day   = 1
+
+    @until_year  = _y || self.ics_end.year
+    #ng. @until_month = _m || (_y.nil?)? self.ics_end.month : 12
+    @until_month = _m || ((_y.nil?)? self.ics_end.month : 12)
+    @until_day   = DateTime.new(@until_year, @until_month, -1).day
+
+    raise ArgumentError, "You specified #{[_y, _m].compact.join(' and ')}."+
+      " Specify year (and month) in the date range #{to_s_date(ics_start)}"+
+      " - #{to_s_date(ics_end)}." unless valid_date?
+
     self
   end
-  attr_accessor :until_month, :until_day
-  attr_reader   :ics_events
-  def until; DateTime.new(in_year, until_month, until_day); end
-  def ics_start
+
+  attr_reader :since_year, :since_month, :since_day
+  attr_reader :until_year, :until_month, :until_day
+  attr_reader :ics_events
+
+  def since; DateTime.new(since_year, since_month, since_day); end
+  def until; DateTime.new(until_year, until_month, until_day); end
+
+  def __ics_start
     ics_events.first.dtstart.to_datetime
   end
-  def ics_end
+  def __ics_end
     ics_events.last.dtstart.to_datetime
   end
-  def ics_since; DateTime.new(ics_start.year, ics_start.month, ics_start.day); end
-  def ics_until; DateTime.new(ics_end.year,   ics_end.month,   ics_end.day  ); end
+  def ics_start
+    tmp = __ics_start
+    DateTime.new(tmp.year, tmp.month, 1)
+  end
+  def ics_end
+    tmp = __ics_end
+    DateTime.new(tmp.year, tmp.month, -1)
+  end
+  alias :ics_since :ics_start
+  alias :ics_until :ics_end
 
 end
 
@@ -70,62 +102,79 @@ end
 #
 class CalendarDays
 
-  def date_to_datetime( date )
-    date = DateTime.parse(date) if date.is_a? ::String
-    date
-  end
-
+  # get the weekdays from the specified date range except saturday, sunday, and holiday.
   # 指定した年(もしくは月)の平日 Weekday (土日祝日を抜いた日) を得る
   #
   #
-  def __weekday_list
-    ret = []
-
-    dt_since = DateTime.new(in_year, since_month, since_day)
-    dt_until = DateTime.new(in_year, until_month, until_day)
-
-    dt_tmp = dt_since
-    begin
-      # if is_weekend?(dt_tmp) or is_holiday?(dt_tmp)
-      if yield(dt_tmp)
-        ret.push dt_tmp
-      end
-
-      dt_tmp += 1
-    end while dt_tmp <= dt_until
-
-    ret
-  end
-  def weekday_list
-    ret = __weekday_list{|dt| not(is_weekend?(dt)) and not(is_holiday?(dt)) }
-    ret
+  def __weekday_list( dt_since = self.since, dt_until = self.until )
+    (dt_since..dt_until).select{|d| yield(d) }
   end
 
+  # get the weekdays from the user-specified date range.
   #
+  #
+  def weekday_list
+    __weekday_list{|dt|
+      not(is_weekend?(dt)) and not(is_holiday?(dt))
+    }
+  end
+
+  # get the weekdays defined in the ics file.
+  #
+  #
+  def ics_weekday_list
+    __weekday_list(ics_start, ics_end){|dt|
+      not(is_weekend?(dt)) and not(is_holiday?(dt))
+    }
+  end
+
+  alias :week_days      :weekday_list
+  alias :working_days   :weekday_list
+  alias :buisiness_days :weekday_list
+
+  alias :weekdays      :weekday_list
+  alias :workingdays   :weekday_list
+  alias :buisinessdays :weekday_list
+
+  alias :ics_week_days     :ics_weekday_list
+  alias :ics_working_days  :ics_weekday_list
+  alias :ics_business_days :ics_weekday_list
+
+  alias :ics_weekdays     :ics_weekday_list
+  alias :ics_workingdays  :ics_weekday_list
+  alias :ics_businessdays :ics_weekday_list
+
+  # get saturdays and sundays.
   # ==== Attention
   # there exists such days which are both weekend and holiday.
   def weekend_list
-    ret = __weekday_list{|dt| is_weekend?(dt) }
-    ret
+    __weekday_list{|dt| is_weekend?(dt) }
   end
-  alias :weekdays    :weekday_list
-  alias :workingdays :weekday_list
-  alias :weekends    :weekend_list
+  def ics_weekend_list
+    __weekday_list(ics_start, ics_end){|dt| is_weekend?(dt) }
+  end
+  alias :weekends     :weekend_list
+  alias :ics_weekends :ics_weekend_list
 
+  #
+  #
+  #
   def is_saturday?( date )
     date_to_datetime(date).saturday?
   end
-  alias :is_sat? :is_saturday?
-  alias :is_sat? :is_saturday?
+  alias :is_sat?   :is_saturday?
+  alias :saturday? :is_saturday?
 
   def is_sunday?( date )
     date_to_datetime(date).sunday?
   end
   alias :is_sun? :is_sunday?
+  alias :sunday? :is_sunday?
 
   def is_weekend?(date)
     is_saturday?(date) or is_sunday?(date)
   end
+  alias :weekend? :is_weekend?
 
 end
 
@@ -178,6 +227,7 @@ class CalendarDays
     dt = __dt.to_s.gsub(/T.+$/, '')
     holiday_list.map{|e| e.first.to_s }.grep( /^#{dt}/ ).size > 0
   end
+  alias :holiday? :is_holiday?
 
   def holiday_name( date )
     if date.is_a? ::String
@@ -193,6 +243,11 @@ class CalendarDays
     end
   end
 
+  # get the date of holiday from name.
+  # ==== Args
+  # name :: name of holiday.
+  # ==== Return
+  # Name or [ Name, ... ] (in case two or more dates are matched)
   def holiday_date( name )
     ret = unless block_given?
             holiday_list.select{|e| e.last =~ /#{name}/i }.map{|e| e.first }

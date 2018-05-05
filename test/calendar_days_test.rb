@@ -1,4 +1,6 @@
+# require "calendar_days"
 require "test_helper"
+require "user_config"
 
 
 #
@@ -10,11 +12,13 @@ class CalendarDaysTest < Test::Unit::TestCase
 
   end
   def self.shutdown
-
+    FileUtils.rm_f File.join(__dir__, ICS_DIR, ICS_FILE)
   end
 
   def setup
-    @cald_default = CalendarDays.new(2018)
+    @cald_default    = CalendarDays.new(2018)
+    @cald_no_arg     = CalendarDays.new()
+    @cald_with_month = CalendarDays.new(2018, 5)
   end
 
   def teardown
@@ -23,29 +27,26 @@ class CalendarDaysTest < Test::Unit::TestCase
 end
 
 
-# user-defined ics methods (override NetCache).
-#
-#
-class CalendarDays
-
-  def repo_uri
-    'http://www.google.com/calendar/ical/japanese@holiday.calendar.google.com/public/basic.ics'
-  end
-  def repo_dir
-    File.join(__dir__, "pattern/ics")
-  end
-  def repo_file
-    File.basename repo_uri
-  end
-
-end
-
-
-
 #
 #
 #
 class CalendarDaysTest
+
+  def test_exceptions
+
+    ret = assert_raise(ArgumentError) do
+      CalendarDays.new(1990)
+    end
+    exp = "You specified 1990. Specify year (and month) in the date range 2017-01-01 - 2019-11-30."
+    assert_equal exp, ret.message
+
+    ret = assert_raise(ArgumentError) do
+      CalendarDays.new(3000, 5)
+    end
+    exp = "You specified 3000 and 5. Specify year (and month) in the date range 2017-01-01 - 2019-11-30."
+    assert_equal exp, ret.message
+
+  end
 
   def test_prepare_ics
     ret = @cald_default.repo_exist?
@@ -65,6 +66,23 @@ class CalendarDaysTest
     ret = @cald_default.until.to_s
     exp = "2018-12-31"
     assert_match exp, ret
+
+    ret = @cald_no_arg.since.to_s
+    exp = "2017-01-01"
+    assert_match exp, ret
+
+    ret = @cald_no_arg.until.to_s
+    exp = "2019-11-30"
+    assert_match exp, ret
+
+    ret = @cald_with_month.since.to_s
+    exp = "2018-05-01"
+    assert_match exp, ret
+
+    ret = @cald_with_month.until.to_s
+    exp = "2018-05-31"
+    assert_match exp, ret
+
   end
 
   def test_ics_events
@@ -73,11 +91,11 @@ class CalendarDaysTest
     exp = 55
     assert_equal exp, ret
 
-    ret = @cald_default.ics_start.to_s
+    ret = @cald_default.__ics_start.to_s
     exp = "2017-01-01"
     assert_match exp, ret
 
-    ret = @cald_default.ics_end.to_s
+    ret = @cald_default.__ics_end.to_s
     exp = "2019-11-23"
     assert_match exp, ret
 
@@ -86,7 +104,7 @@ class CalendarDaysTest
     assert_match exp, ret
 
     ret = @cald_default.ics_until.to_s
-    exp = "2019-11-23"
+    exp = "2019-11-30"
     assert_match exp, ret
 
   end
