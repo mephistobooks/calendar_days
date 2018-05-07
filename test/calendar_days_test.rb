@@ -16,9 +16,9 @@ class CalendarDaysTest < Test::Unit::TestCase
   end
 
   def setup
-    @cald_default    = CalendarDays.new(2018)
+    @cald_default    = CalendarDays.new('2018')
     @cald_no_arg     = CalendarDays.new()
-    @cald_with_month = CalendarDays.new(2018, 5)
+    @cald_with_month = CalendarDays.new(2018, '5')
   end
 
   def teardown

@@ -54,14 +54,16 @@ class CalendarDays
     @ics_events = Icalendar::Event.parse(ics_file).sort_by{|ev| ev.dtstart.to_datetime}
     ics_file.close
 
-    @since_year  = _y || self.ics_start.year
-    @since_month = _m ||  1
+    @since_year  = (_y || self.ics_start.year).to_i
+    @since_month = (_m ||  1).to_i
     @since_day   = 1
 
-    @until_year  = _y || self.ics_end.year
+    @until_year  = (_y || self.ics_end.year).to_i
+
     #ng. @until_month = _m || (_y.nil?)? self.ics_end.month : 12
-    @until_month = _m || ((_y.nil?)? self.ics_end.month : 12)
+    @until_month = (_m || ((_y.nil?)? self.ics_end.month : 12)).to_i
     @until_day   = DateTime.new(@until_year, @until_month, -1).day
+
 
     raise ArgumentError, "You specified #{[_y, _m].compact.join(' and ')}."+
       " Specify year (and month) in the date range #{to_s_date(ics_start)}"+
